@@ -1,8 +1,88 @@
 import com.github.tototoshi.csv._
+
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 
 object Main extends App {
+  private val HydroCSV = CSVReader.open(new File("./src/main/scala/Hydro.csv"))
+  private val SolarCSV = CSVReader.open(new File("./src/main/scala/Solar.csv"))
+  private val WindCSV = CSVReader.open(new File("./src/main/scala/Wind.csv"))
+  private val HydroData = HydroCSV.all()
+  private val SolarData = SolarCSV.all()
+  private val WindData = WindCSV.all()
+  
+  case class RenewableData(startTime: LocalDateTime, endTime: LocalDateTime, hydroPowerProduction: Double)
+  
+  val dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+  
+  val noHeaderValuesHydro = HydroData.drop(1) //remove header
+  val dataHydro = noHeaderValuesHydro.map { line =>
+    RenewableData(LocalDateTime.parse(line(0), dateTimeFormatter), LocalDateTime.parse(line(1), dateTimeFormatter), line(2).toDouble)
+  }
+  
+  val noHeaderValuesSolar = SolarData.drop(1) //remove header
+  val dataSolar = noHeaderValuesSolar.map { line =>
+    RenewableData(LocalDateTime.parse(line(0), dateTimeFormatter), LocalDateTime.parse(line(1), dateTimeFormatter), line(2).toDouble)
+  }
+  
+  val noHeaderValuesWind = WindData.drop(1) //remove header
+  val dataWind = noHeaderValuesWind.map { line =>
+    RenewableData(LocalDateTime.parse(line(0), dateTimeFormatter), LocalDateTime.parse(line(1), dateTimeFormatter), line(2).toDouble)
+  }
+  
+  def filterDataByTimePeriod(data: Seq[RenewableData], startTime: LocalDateTime, endTime: LocalDateTime): Seq[RenewableData] = {
+    data.filter(d => d.startTime.isAfter(startTime) && d.endTime.isBefore(endTime))
+  }
+  
+  def viewData() = {
+    print("Plant:\n1. Hydro\n2. Solar\n3. Wind\nPlease enter your choice: ")
+    val choice = scala.io.StdIn.readInt()
+    print("Filter By:\n 1. Last hour\n 2. Last day\n 3. Last week\n 4. Last month\nPlease enter your choice: ")
+    val choice2 = scala.io.StdIn.readInt()
+    
+    val startTime = choice2 match {
+      case 1 =>
+        val currentTime = LocalDateTime.now() // Get the current date-time
+        currentTime.minusHours(1)
+      case 2 =>
+        val currentTime = LocalDateTime.now() // Get the current date-time
+        currentTime.minusDays(1)
+      case 3 =>
+        val currentTime = LocalDateTime.now() // Get the current date-time
+        currentTime.minusDays(7)
+      case 4 =>
+        val currentTime = LocalDateTime.now() // Get the current date-time
+        currentTime.minusDays(30)
+    }
+    
+    choice match {
+      case 1 =>
+        val currentTime = LocalDateTime.now() // Get the current date-time
+        val endTime = currentTime
+        val filteredData = filterDataByTimePeriod(dataHydro, startTime, endTime)
+        
+        filteredData.foreach(println)
+      case 2 =>
+        val currentTime = LocalDateTime.now() // Get the current date-time
+        val endTime = currentTime
+        val filteredData = filterDataByTimePeriod(dataSolar, startTime, endTime)
+        
+        filteredData.foreach(println)
+      case 3 =>
+        val currentTime = LocalDateTime.now() // Get the current date-time
+        
+        val endTime = currentTime
+        val filteredData = filterDataByTimePeriod(dataWind, startTime, endTime)
+        
+        filteredData.foreach(println)
+      case _ =>
+        println("Invalid choice. Please try again.")
+    }
+  }
+  
+  
   def mean(data: List[List[String]]): Unit = {
     if (data.isEmpty) {
       println("No data available.")
@@ -107,20 +187,13 @@ object Main extends App {
     }
   }
 
-  private val HydroCSV = CSVReader.open(new File("./src/main/scala/Hydro.csv"))
-  private val SolarCSV = CSVReader.open(new File("./src/main/scala/Solar.csv"))
-  private val WindCSV = CSVReader.open(new File("./src/main/scala/Wind.csv"))
-  private val HydroData = HydroCSV.all()
-  private val SolarData = SolarCSV.all()
-  private val WindData = WindCSV.all()
-
   private var running = true
 
   while (running) {
     println("Menu:")
     println("1. View Hydro Data")
     println("2. View Solar Data")
-    println("3. View Wind Data")
+    println("3. View Data")
     println("4. Exit")
 
     print("Please enter your choice: ")
@@ -140,11 +213,7 @@ object Main extends App {
         range(SolarData)
         midrange(SolarData)
       case 3 =>
-        mean(WindData)
-        median(WindData)
-        mode(WindData)
-        range(WindData)
-        midrange(WindData)
+        viewData()
       case 4 =>
         running = false
         println("Goodbye!")
